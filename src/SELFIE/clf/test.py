@@ -15,7 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.flags.DEFINE_string('test_data_file', None, 'Test data file path')
 tf.flags.DEFINE_string('run_dir', None, 'Restore the model from this run')
 tf.flags.DEFINE_string('checkpoint', None, 'Restore the graphs from this checkpoint')
-tf.flags.DEFINE_string('if_dictionary_path', 'C:/Users/moham/Documents/Projects/DeepModelInterpretation/src/SELFIE/clf/runs/CNN_Amazon_CAM_ReLU/interpretation_features_200k/final_IF.pkl', 'The path to the interpretation features dictionary')
+tf.flags.DEFINE_string('if_dictionary_path', None, 'The path to the interpretation features dictionary')
 
 # Model choices
 tf.flags.DEFINE_boolean('generate_IF', False, 'generate and save the interpretation_features of the prediction')
