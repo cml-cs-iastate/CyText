@@ -19,8 +19,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.flags.DEFINE_boolean('selfie', True, 'build the classifier for the combined loss')
 tf.flags.DEFINE_boolean('salience_map', False, 'build the classifier for Salience Map')
 tf.flags.DEFINE_boolean('lrp', False, 'run LRP')
-tf.flags.DEFINE_string('if_dictionary_path', 'C:/Users/moham/Documents/Projects/DeepModelInterpretation/src/SELFIE/clf/runs/CNN_Amazon_CAM_ReLU/interpretation_features_200k/final_IF.pkl',
-                       'The path to the interpretation features dictionary')
+tf.flags.DEFINE_string('if_dictionary_path', None, 'The path to the interpretation features dictionary')
 
 # Data parameters
 tf.flags.DEFINE_string('data_file', None, 'Data file path')
