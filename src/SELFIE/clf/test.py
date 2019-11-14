@@ -18,11 +18,9 @@ tf.flags.DEFINE_string('checkpoint', None, 'Restore the graphs from this checkpo
 tf.flags.DEFINE_string('if_dictionary_path', None, 'The path to the interpretation features dictionary')
 
 # Model choices
-tf.flags.DEFINE_boolean('generate_IF', False, 'generate and save the interpretation_features of the prediction')
-tf.flags.DEFINE_boolean('selfie', True, 'run the classification using SELFIE')
-tf.flags.DEFINE_boolean('salience_map', False, 'build the classifier for Salience Map')
-tf.flags.DEFINE_boolean('lrp', False, 'run LRP')
-tf.flags.DEFINE_boolean('remove_words', True, 'remove words from the inputs data')
+tf.flags.DEFINE_boolean('generate_IF', True, 'generate and save the interpretation_features of the prediction')
+tf.flags.DEFINE_boolean('interpretation', True, 'run the classification using SELFIE, LRP, or Salience Map')
+tf.flags.DEFINE_boolean('remove_words', False, 'remove words from the inputs data')
 
 # Test batch size
 tf.flags.DEFINE_integer('batch_size', 32, 'Test batch size')
@@ -79,19 +77,18 @@ with graph.as_default():
     all_predictions = []
     sum_accuracy = 0
 
-    if FLAGS.selfie or FLAGS.salience_map or FLAGS.lrp:
+    if FLAGS.interpretation:
         precision = 0
         recall = 0
         kappa = 0
         heat_map = list()            # the heat map of a given input to reflect the importance of each word
+        final_logits_ = list()
+        final_predictions = list()
 
     if FLAGS.generate_IF:
         IF = dict()                  # the summation of the interpretation value for each interpretation feature
         count_IF = dict()            # the count of each interpretation feature weighted by the interpretation method
         average_IF = dict()          # averaging the true interpretation_features per dataset
-
-    final_logits_ = list()
-    final_predictions = list()
 
     if FLAGS.remove_words:
         with open(os.path.join(FLAGS.run_dir, 'heat_map.pkl'), 'rb') as f:
@@ -112,16 +109,14 @@ with graph.as_default():
 
         feed_dict = {input_x: x_test, input_y: y_test, keep_prob: 1.0}
 
-        if not FLAGS.selfie and not FLAGS.salience_map and not FLAGS.lrp:
-            batch_predictions, batch_accuracy, logits_ = sess.run([predictions, accuracy, logits], feed_dict)
-            final_logits_.append(logits_)
-            final_predictions.append(batch_predictions)
+        if not FLAGS.interpretation:
+            batch_predictions, batch_accuracy = sess.run([predictions, accuracy], feed_dict)
         else:
             batch_predictions, batch_accuracy, logits_, normalized_heat_map_ = sess.run([predictions, accuracy, logits, normalized_heat_map], feed_dict)
             final_logits_.append(logits_)
             final_predictions.append(batch_predictions)
 
-            if not FLAGS.remove_words and FLAGS.if_dictionary_path is not None:
+            if not FLAGS.remove_words and FLAGS.if_dictionary_path is not None and not FLAGS.generate_IF:
                 # calculate the Kappa, Precision, and Recall
                 interpretation_ground_truth = generate_ground_truth(x_test, y_test, inv_vocab_dict, ground_truth_dict)
                 for sample_idx in range(FLAGS.batch_size):
@@ -152,26 +147,26 @@ with graph.as_default():
                 for sample_idx in range(FLAGS.batch_size):
                     heat_map.append(normalized_heat_map_[sample_idx][:real_lengths[sample_idx]])
 
-        if FLAGS.generate_IF:
-            # store the predicted interpretation_features information per input sample
-            for sample_idx in range(FLAGS.batch_size):
-                # get the words from the embedding
-                words = [inv_vocab_dict[w] for w in x_test[sample_idx][:real_lengths[sample_idx]]]
-                # get the interpretation feature information
-                if batch_predictions[sample_idx] == y_test[sample_idx]:
-                    for j, w in enumerate(normalized_heat_map_[sample_idx][:real_lengths[sample_idx]]):
-                        if w > 0:
-                            IF.setdefault(batch_predictions[sample_idx], dict())
-                            IF[batch_predictions[sample_idx]][words[j]] = IF[batch_predictions[sample_idx]].setdefault(words[j], 0) + w
-                            count_IF.setdefault(batch_predictions[sample_idx], dict())
-                            count_IF[batch_predictions[sample_idx]][words[j]] = count_IF[batch_predictions[sample_idx]].setdefault(words[j], 0) + 1
+            if FLAGS.generate_IF:
+                # store the predicted interpretation_features information per input sample
+                for sample_idx in range(FLAGS.batch_size):
+                    # get the words from the embedding
+                    words = [inv_vocab_dict[w] for w in x_test[sample_idx][:real_lengths[sample_idx]]]
+                    # get the interpretation feature information
+                    if batch_predictions[sample_idx] == y_test[sample_idx]:
+                        for j, w in enumerate(normalized_heat_map_[sample_idx][:real_lengths[sample_idx]]):
+                            if w > 0:
+                                IF.setdefault(batch_predictions[sample_idx], dict())
+                                IF[batch_predictions[sample_idx]][words[j]] = IF[batch_predictions[sample_idx]].setdefault(words[j], 0) + w
+                                count_IF.setdefault(batch_predictions[sample_idx], dict())
+                                count_IF[batch_predictions[sample_idx]][words[j]] = count_IF[batch_predictions[sample_idx]].setdefault(words[j], 0) + 1
 
         sum_accuracy += batch_accuracy
         all_predictions = np.concatenate([all_predictions, batch_predictions])
 
     # print the results
     print(f'Test accuracy: {sum_accuracy / num_batches}')
-    if not FLAGS.remove_words and (FLAGS.selfie or FLAGS.salience_map or FLAGS.lrp):
+    if FLAGS.interpretation and not FLAGS.remove_words:
         precision /= ((counter + 1) * FLAGS.batch_size)
         recall /= ((counter + 1) * FLAGS.batch_size)
         kappa /= ((counter + 1) * FLAGS.batch_size)
@@ -197,18 +192,15 @@ with graph.as_default():
 
         with open(os.path.join(FLAGS.run_dir, 'IF.pkl'), 'wb') as f:
             pkl.dump(IF, f, pkl.HIGHEST_PROTOCOL)
-
         with open(os.path.join(FLAGS.run_dir, 'count_IF.pkl'), 'wb') as f:
             pkl.dump(count_IF, f, pkl.HIGHEST_PROTOCOL)
-
         with open(os.path.join(FLAGS.run_dir, 'average_IF.pkl'), 'wb') as f:
             pkl.dump(average_IF, f, pkl.HIGHEST_PROTOCOL)
 
     if not FLAGS.remove_words:
-        # store heat map
+        # store heat map, predictions, and logits
         with open(os.path.join(FLAGS.run_dir, 'heat_map.pkl'), 'wb') as f:
             pkl.dump(heat_map, f, pkl.HIGHEST_PROTOCOL)
-
         with open(os.path.join(FLAGS.run_dir, 'predictions.pkl'), 'wb') as f:
             pkl.dump(final_predictions, f, pkl.HIGHEST_PROTOCOL)
         with open(os.path.join(FLAGS.run_dir, 'logits.pkl'), 'wb') as f:
