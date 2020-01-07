@@ -1,7 +1,5 @@
 import csv
 
-file_path = 'C:\\Users\\moham\\Documents\\Projects\\Text_Classification\\data\\Yelp\\Yelp.csv'
-
 with open(file_path, 'r', encoding='utf-8') as f:
     incsv = csv.reader(f)
     header = next(incsv)  # Header
