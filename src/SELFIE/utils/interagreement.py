@@ -1,6 +1,5 @@
 import csv
 
-dataset_file = 'Amazon 250 Reviews Preprocessed Nov 6.csv'
 with open(dataset_file, 'r', encoding='utf-8', errors='ignore') as f:
     print('Building dataset ...')
     csv_reader = csv.reader(f)
@@ -11,7 +10,6 @@ with open(dataset_file, 'r', encoding='utf-8', errors='ignore') as f:
         A.append(sample[3])
         B.append(sample[4])
 
-    # compare between A and B (Human with Human / or Human with Machine)
     a, b, c, d, counter = 0, 0, 0, 0, 0
     for idx, sample in enumerate(data):
         list_A = A[idx].split()
