@@ -10,6 +10,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 tf.flags.DEFINE_string('output_directory', None, 'Restore the model from this run')
 tf.flags.DEFINE_string('data_file', None, 'Data file path')
+tf.flags.DEFINE_integer('mu_threshold', None, 'mu_threshold')
+tf.flags.DEFINE_integer('beta_threshold', None, 'beta_threshold')
+tf.flags.DEFINE_integer('phi_threshold', None, 'phi_threshold')
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -42,17 +46,13 @@ with open(os.path.join(FLAGS.output_directory, 'average_IF.pkl'), 'rb') as f:
 # final dictionary
 final_IF = dict()
 
-mu_threshold = 0.3
-beta_threshold = 5
-phi_threshold = 0.25
-
 for category, sub_dict in Ravg.items():
     for word, value in sub_dict.items():
-        if value >= mu_threshold and Freq[category][word] >= beta_threshold and len(word) >= 2:
+        if value >= FLAGS.mu_threshold and Freq[category][word] >= FLAGS.beta_threshold and len(word) >= 2:
             is_true = True
             for category_idx in range(len(Ravg)):
                 if category_idx in Ravg and category_idx != category:
-                    if word not in Ravg[category_idx] or value >= Ravg[category_idx][word] + phi_threshold:
+                    if word not in Ravg[category_idx] or value >= Ravg[category_idx][word] + FLAGS.phi_threshold:
                         continue
                     else:
                         is_true = False
@@ -73,4 +73,3 @@ for key, value in final_IF.items():
     for item in sorted(value.items(), key=itemgetter(1)):
         print('{} : {:.2f}'.format(item[0], item[1]))
     print(f'The length of the dictionary for class {key} is = {len(value)}')
-    print()
