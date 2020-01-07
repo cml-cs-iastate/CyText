@@ -13,7 +13,7 @@ def generate_ground_truth(input_x, input_y, words_vocab, if_dict):
         for word in sample:
             if word in words_vocab and input_y[idx] in if_dict:
                 if words_vocab[word] in if_dict[input_y[idx]]:
-                    temp.append(1)  # convert to temp.append(if_dict[input_y[idx]][word]) for weight assignment
+                    temp.append(1)  # convert if_dict[input_y[idx]][word] for weight assignment
                 else:
                     temp.append(0)
             else:
@@ -125,6 +125,3 @@ def precision_and_recall(prediction_file):
         recall = tp / ((tp + fn) + 1e-10)
 
         return precision, recall
-
-
-# print(precision_and_recall('C:\\Users\\moham\\Documents\\Projects\\DeepModelInterpretation\\src\\SELFIE\\clf\\runs\\SELFIE_Amazon_Classify_Train_Gamma_0.7\\predictions.csv'))
